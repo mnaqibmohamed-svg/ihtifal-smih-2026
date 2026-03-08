@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaunter Hadapan | Ihtifal SMIH 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">💻 Kaunter Hadapan Ihtifal</a>
+        <span class="navbar-text text-light" id="jam-semasa">00:00:00</span>
+    </div>
+</nav>
+
+<div class="container-fluid py-4 px-4">
+    <div class="row g-4">
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-primary text-white fw-bold">
+                    1. Pengimbas Pendaftaran
+                </div>
+                <div class="card-body text-center p-4">
+                    <h5 class="mb-3">Sila Imbas / Taip No Kad Pengenalan</h5>
+                    
+                    <div class="input-group input-group-lg mb-3">
+                        <input type="text" id="no_ic_kaunter" class="form-control text-center fs-3" placeholder="Contoh: 012345678910" autofocus onkeypress="jikaEnter(event)">
+                    </div>
+                    
+                    <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="sahkanKehadiran()">Sahkan Kehadiran ✓</button>
+                    
+                    <div id="mesej-status" class="mt-4">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-success text-white fw-bold">
+                    2. Senarai Kehadiran Terkini (Live Feed)
+                    <span class="badge bg-light text-dark float-end">Disusun ikut: Waktu Naik Pentas</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light position-sticky top-0 shadow-sm">
+                                <tr>
+                                    <th>Waktu Pentas</th>
+                                    <th>Nama Pelajar</th>
+                                    <th>Kelas</th>
+                                    <th>Kategori Anugerah</th>
+                                    <th>No IC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="senarai-live">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Jam Real-time
+    setInterval(() => {
+        document.getElementById('jam-semasa').innerText = new Date().toLocaleTimeString('ms-MY');
+    }, 1000);
+
+    // Fungsi tekan Enter terus hantar
+    function jikaEnter(e) {
+        if (e.key === 'Enter') sahkanKehadiran();
+    }
+
+    async function sahkanKehadiran() {
+        const inputIC = document.getElementById('no_ic_kaunter');
+        const ic = inputIC.value.trim();
+        const divMesej = document.getElementById('mesej-status');
+
+        if (!ic) return;
+
+        try {
+            // Oleh kerana fail ini dikunci dengan Basic Auth, browser secara automatik
+            // menghantar 'credentials' jika user sudah log masuk, tetapi kita spesifikkan
+            // juga di sini supaya tidak ralat.
+            const res = await fetch('/api/hadir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ no_ic: ic }),
+                credentials: 'same-origin'
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                // Bunyi 'Beep' untuk sukses
+                let audio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3');
+                audio.play().catch(e => console.log("Bunyi disekat oleh browser"));
+
+                divMesej.innerHTML = `<div class="alert alert-success fs-5 fw-bold py-3 shadow-sm border-0">✅ ${result.message}</div>`;
+                inputIC.value = ''; // Kosongkan kotak
+                inputIC.focus(); // Sedia untuk imbas seterusnya
+                
+                muatSenaraiLive(); // Kemaskini jadual sebelah kanan
+            } else {
+                divMesej.innerHTML = `<div class="alert alert-danger fw-bold">❌ ${result.message}</div>`;
+                inputIC.select();
+            }
+        } catch (error) {
+            console.error(error);
+            divMesej.innerHTML = `<div class="alert alert-warning">Ralat berhubung dengan server.</div>`;
+        }
+    }
+
+    async function muatSenaraiLive() {
+        try {
+            const res = await fetch('/api/live-kehadiran');
+            const result = await res.json();
+            if (result.success) {
+                const tbody = document.getElementById('senarai-live');
+                let html = '';
+                
+                if (result.data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Belum ada pendaftaran kehadiran.</td></tr>`;
+                    return;
+                }
+
+                result.data.forEach(p => {
+                    // Perisai Null: Jika nilai tiada atau tertulis 'null', kita letak '-'
+                    const masa = (p.waktu_anugerah && p.waktu_anugerah !== 'null') ? p.waktu_anugerah : '-';
+                    const nama = (p.nama_pelajar && p.nama_pelajar !== 'null') ? p.nama_pelajar : 'Tiada Nama';
+                    const kelas = (p.kelas_pelajar && p.kelas_pelajar !== 'null') ? p.kelas_pelajar : '-';
+                    const anugerah = (p.nama_anugerah && p.nama_anugerah !== 'null') ? p.nama_anugerah : '-';
+                    const ic = (p.no_ic && p.no_ic !== 'null') ? p.no_ic : '-';
+
+                    html += `
+                        <tr>
+                            <td class="text-danger fw-bold">${masa}</td>
+                            <td class="fw-bold">${nama}</td>
+                            <td>${kelas}</td>
+                            <td><span class="badge bg-warning text-dark">${anugerah}</span></td>
+                            <td class="text-muted small">${ic}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+        } catch (error) { console.error(error); }
+    }
+
+    // Muat senarai apabila halaman dibuka
+    muatSenaraiLive();
+    
+    // Auto refresh live feed setiap 5 saat (sekiranya ada laptop kaunter lain yang sedang scan)
+    setInterval(muatSenaraiLive, 5000);
+
+</script>
+</body>
+</html>
