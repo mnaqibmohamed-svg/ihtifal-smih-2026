@@ -5,7 +5,7 @@ const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
 const basicAuth = require('express-basic-auth');
-
+const os = require('os');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -29,7 +29,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: os.tmpdir() });
 
 // =====================================
 // API ROUTES
