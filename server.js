@@ -27,7 +27,7 @@ app.use(express.static('public'));
 // Sambungan Pangkalan Data Supabase (Guna Direct IPv4 Host)
 const pool = new Pool({
     // Perhatikan penambahan ".pooler" pada nama host, walaupun menggunakan port 5432
-    connectionString: 'postgresql://postgres.pvhqwprecftxldegojzt:qA8ZuPbmiZbxRDbs@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres',
+    connectionString: 'postgresql://postgres.pvhqwprecftxldegojzt:qA8ZuPbmiZbxRDbs@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres',
     ssl: { rejectUnauthorized: false }
 });
 
