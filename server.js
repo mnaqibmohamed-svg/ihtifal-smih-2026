@@ -24,8 +24,9 @@ app.use('/kaunter.html', kunciUrusetia);
 app.use(express.static('public'));
 
 // Sambungan Pangkalan Data Supabase
+// Sambungan Pangkalan Data Supabase (Guna IPv4 Pooler untuk Render)
 const pool = new Pool({
-    connectionString: 'postgresql://postgres:qA8ZuPbmiZbxRDbs@db.pvhqwprecftxldegojzt.supabase.co:5432/postgres',
+    connectionString: 'postgresql://postgres.pvhqwprecftxldegojzt:qA8ZuPbmiZbxRDbs@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres',
     ssl: { rejectUnauthorized: false }
 });
 
